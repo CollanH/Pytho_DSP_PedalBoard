@@ -3,9 +3,14 @@
 from __future__ import annotations
 
 from collections import deque
+from collections.abc import Iterable
+from typing import Generic, TypeVar
 
 
-class RingBuffer:
+T = TypeVar("T")
+
+
+class RingBuffer(Generic[T]):
     """Fixed-capacity FIFO ring buffer API.
 
     API:
@@ -21,7 +26,7 @@ class RingBuffer:
         if capacity <= 0:
             raise ValueError("capacity must be > 0")
         self._capacity = capacity
-        self._buffer: deque = deque(maxlen=capacity)
+        self._buffer: deque[T] = deque(maxlen=capacity)
 
     @property
     def capacity(self) -> int:
@@ -31,19 +36,15 @@ class RingBuffer:
     def available(self) -> int:
         return len(self._buffer)
 
-    def write(self, items) -> None:
-        for item in items:
-            self._buffer.append(item)
+    def write(self, items: Iterable[T]) -> None:
+        self._buffer.extend(items)
 
-    def read(self, n: int):
+    def read(self, n: int) -> list[T]:
         if n < 0:
             raise ValueError("n must be >= 0")
-        out = []
-        for _ in range(min(n, len(self._buffer))):
-            out.append(self._buffer.popleft())
-        return out
+        return [self._buffer.popleft() for _ in range(min(n, len(self._buffer)))]
 
-    def peek(self, n: int):
+    def peek(self, n: int) -> list[T]:
         if n < 0:
             raise ValueError("n must be >= 0")
         return [self._buffer[i] for i in range(min(n, len(self._buffer)))]
